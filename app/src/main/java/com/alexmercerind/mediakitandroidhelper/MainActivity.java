@@ -31,6 +31,6 @@ public class MainActivity extends AppCompatActivity {
         textView.setText(String.format(Locale.ENGLISH, "%d", ref));
 
         MediaKitAndroidHelper.setApplicationContext(getApplicationContext());
-        MediaKitAndroidHelper.copyAssetToExternalFilesDir("video/bee.mp4");
+        MediaKitAndroidHelper.copyAssetToFilesDir("video/bee.mp4");
     }
 }

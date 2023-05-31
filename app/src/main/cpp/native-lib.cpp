@@ -17,16 +17,15 @@
 // ------------------------------------------------------------
 
 JavaVM* g_jvm = NULL;
-int32_t g_api_level = -1;
 int8_t g_is_emulator = -1;
-char* g_external_files_dir = NULL;
+char* g_files_dir = NULL;
 AAssetManager* g_asset_manager = NULL;
 
 // ------------------------------------------------------------
 // Native. For access through Dart FFI.
 // ------------------------------------------------------------
 
-extern "C" __attribute__ ((visibility ("default"))) void MediaKitAndroidHelperCopyAssetToExternalFilesDir(const char* asset_name,  char* result) {
+extern "C" __attribute__ ((visibility ("default"))) void MediaKitAndroidHelperCopyAssetToFilesDir(const char* asset_name,  char* result) {
     strcpy(result, "");
 
     if (g_jvm == NULL) {
@@ -56,7 +55,7 @@ extern "C" __attribute__ ((visibility ("default"))) void MediaKitAndroidHelperCo
 
     AAsset_close(asset);
 
-    std::string directory_out = g_external_files_dir;
+    std::string directory_out = g_files_dir;
     directory_out += "/com.alexmercerind.media_kit/";
     std::string file_name = asset_name;
     std::replace(file_name.begin(), file_name.end(), '/', '_');
@@ -96,7 +95,7 @@ extern "C" __attribute__ ((visibility ("default"))) void* MediaKitAndroidHelperG
 }
 
 extern "C" __attribute__ ((visibility ("default"))) int32_t MediaKitAndroidHelperGetAPILevel() {
-    return g_api_level;
+    return android_get_device_api_level();
 }
 
 extern "C" __attribute__ ((visibility ("default"))) int8_t MediaKitAndroidHelperIsEmulator() {
@@ -125,18 +124,13 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
         env->GetJavaVM(&g_jvm);
     }
 
-    //  g_api_level
-
-    if (g_api_level == -1) {
-        jclass build_class = env->FindClass("android/os/Build$VERSION");
-        jfieldID sdk_int_field = env->GetStaticFieldID(build_class, "SDK_INT", "I");
-        g_api_level = env->GetStaticIntField(build_class, sdk_int_field);
-    }
-
     // g_is_emulator
 
     if (g_is_emulator == -1) {
+
         // https://github.com/fluttercommunity/plus_plugins/blob/ff54dc49230ee5f8b772a3326d4ff3758618df80/packages/device_info_plus/device_info_plus/android/src/main/kotlin/dev/fluttercommunity/plus/device_info/MethodCallHandlerImpl.kt#L110-L125
+
+        g_is_emulator = 0;
 
         jclass build_class = env->FindClass("android/os/Build");
 
@@ -248,24 +242,48 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
         env->DeleteLocalRef(product_jstring);
     }
 
-    // g_external_files_dir
+    // g_files_dir
 
-    if (g_external_files_dir == NULL) {
-        g_external_files_dir = new char[2048];
-        jclass context_obj = env->GetObjectClass(context);
-        jmethodID method_id = env->GetMethodID(context_obj, "getExternalFilesDir", "(Ljava/lang/String;)Ljava/io/File;");
-        jobject external_files_dir_jobject = env->CallObjectMethod(context, method_id, (jstring)NULL);
+    if (g_files_dir == NULL) {
+
+        g_files_dir = new char[2048];
+        jclass context_class = env->GetObjectClass(context);
+        jmethodID get_files_dir_method_id = env->GetMethodID(context_class, "getFilesDir", "()Ljava/io/File;");
+        jobject files_dir_jobject = env->CallObjectMethod(context, get_files_dir_method_id);
+
+        if (env->IsSameObject(files_dir_jobject, NULL)) {
+            if (android_get_device_api_level() >= 24) {
+                jmethodID get_data_dir_method_id = env->GetMethodID(context_class, "getDataDir", "()Ljava/io/File;");
+                files_dir_jobject = env->CallObjectMethod(context, get_data_dir_method_id);
+            } else {
+                jmethodID get_application_info_method_id = env->GetMethodID(context_class, "getApplicationInfo", "()Landroid/content/pm/ApplicationInfo;");
+                jobject application_info_jobject = env->CallObjectMethod(context, get_application_info_method_id);
+                jclass application_info_class = env->GetObjectClass(application_info_jobject);
+                jfieldID data_dir_field = env->GetFieldID(application_info_class, "dataDir", "Ljava/lang/String;");
+                jobject data_dir_jobject = env->GetObjectField(application_info_jobject, data_dir_field);
+
+                jclass file_class = env->FindClass("java/io/File");
+                jmethodID file_constructor = env->GetMethodID(file_class, "<init>", "(Ljava/lang/String;)V");
+
+                files_dir_jobject = env->NewObject(file_class, file_constructor, data_dir_jobject);
+
+                env->DeleteLocalRef(application_info_jobject);
+                env->DeleteLocalRef(data_dir_jobject);
+            }
+        }
+
         jmethodID get_absolute_path_method_id = env->GetMethodID(env->FindClass("java/io/File"), "getAbsolutePath", "()Ljava/lang/String;");
-        jstring external_files_dir_jstring = (jstring)env->CallObjectMethod(external_files_dir_jobject, get_absolute_path_method_id);
-        const char* external_files_dir_chars = env->GetStringUTFChars(external_files_dir_jstring, NULL);
+        jstring files_dir_jstring = (jstring)env->CallObjectMethod(files_dir_jobject, get_absolute_path_method_id);
 
-        strncpy(g_external_files_dir, external_files_dir_chars, strlen(external_files_dir_chars));
-        g_external_files_dir[strlen(external_files_dir_chars) + 1] = '\0';
+        const char* files_dir_chars = env->GetStringUTFChars(files_dir_jstring, NULL);
 
-        env->ReleaseStringUTFChars(external_files_dir_jstring, external_files_dir_chars);
+        strncpy(g_files_dir, files_dir_chars, strlen(files_dir_chars));
+        g_files_dir[strlen(files_dir_chars) + 1] = '\0';
 
-        env->DeleteLocalRef(external_files_dir_jobject);
-        env->DeleteLocalRef(external_files_dir_jstring);
+        env->ReleaseStringUTFChars(files_dir_jstring, files_dir_chars);
+
+        env->DeleteLocalRef(files_dir_jobject);
+        env->DeleteLocalRef(files_dir_jstring);
     }
 
     // g_asset_manager
@@ -282,10 +300,10 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_copyAssetToExternalFilesDir(JNIEnv *env, jclass, jstring asset_name) {
+Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_copyAssetToFilesDir(JNIEnv *env, jclass, jstring asset_name) {
     const char* asset_name_chars = env->GetStringUTFChars(asset_name, NULL);
     char result[2048];
-    MediaKitAndroidHelperCopyAssetToExternalFilesDir(asset_name_chars, result);
+    MediaKitAndroidHelperCopyAssetToFilesDir(asset_name_chars, result);
     env->ReleaseStringUTFChars(asset_name, asset_name_chars);
     return env->NewStringUTF(result);
 }

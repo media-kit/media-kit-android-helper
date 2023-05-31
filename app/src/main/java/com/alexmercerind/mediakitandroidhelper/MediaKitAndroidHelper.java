@@ -19,5 +19,5 @@ public class MediaKitAndroidHelper {
 
     public static native void setApplicationContext(Context context);
 
-    public static native String copyAssetToExternalFilesDir(String assetName);
+    public static native String copyAssetToFilesDir(String assetName);
 }
