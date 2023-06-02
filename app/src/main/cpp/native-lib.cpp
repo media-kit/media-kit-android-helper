@@ -142,12 +142,19 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
         char manufacturer_chars[1024];
         char product_chars[1024];
 
+        memset(brand_chars, '\0', 1024);
+        memset(device_chars, '\0', 1024);
+        memset(fingerprint_chars, '\0', 1024);
+        memset(hardware_chars, '\0', 1024);
+        memset(model_chars, '\0', 1024);
+        memset(manufacturer_chars, '\0', 1024);
+        memset(product_chars, '\0', 1024);
+
         jfieldID brand_field_id = env->GetStaticFieldID(build_class, "BRAND", "Ljava/lang/String;");
         jstring brand_jstring = (jstring)env->GetStaticObjectField(build_class, brand_field_id);
         const char* source_brand_chars = env->GetStringUTFChars(brand_jstring, NULL);
         if (source_brand_chars != NULL) {
-            strncpy(brand_chars, source_brand_chars, strlen(source_brand_chars));
-            brand_chars[strlen(source_brand_chars) + 1] = '\0';
+            strncpy(brand_chars, source_brand_chars, 1024);
         }
         __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "%s", brand_chars);
 
@@ -155,8 +162,7 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
         jstring device_jstring = (jstring)env->GetStaticObjectField(build_class, device_field_id);
         const char* source_device_chars = env->GetStringUTFChars(device_jstring, NULL);
         if (source_device_chars != NULL) {
-            strncpy(device_chars, source_device_chars, strlen(source_device_chars));
-            device_chars[strlen(source_device_chars) + 1] = '\0';
+            strncpy(device_chars, source_device_chars, 1024);
         }
         __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "%s", device_chars);
 
@@ -164,8 +170,7 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
         jstring fingerprint_jstring = (jstring)env->GetStaticObjectField(build_class, fingerprint_field_id);
         const char* source_fingerprint_chars = env->GetStringUTFChars(fingerprint_jstring, NULL);
         if (source_fingerprint_chars != NULL) {
-            strncpy(fingerprint_chars, source_fingerprint_chars, strlen(source_fingerprint_chars));
-            fingerprint_chars[strlen(source_fingerprint_chars) + 1] = '\0';
+            strncpy(fingerprint_chars, source_fingerprint_chars, 1024);
         }
         __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "%s", fingerprint_chars);
 
@@ -173,8 +178,7 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
         jstring hardware_jstring = (jstring)env->GetStaticObjectField(build_class, hardware_field_id);
         const char* source_hardware_chars = env->GetStringUTFChars(hardware_jstring, NULL);
         if (source_hardware_chars != NULL) {
-            strncpy(hardware_chars, source_hardware_chars, strlen(source_hardware_chars));
-            hardware_chars[strlen(source_hardware_chars) + 1] = '\0';
+            strncpy(hardware_chars, source_hardware_chars, 1024);
         }
         __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "%s", hardware_chars);
 
@@ -182,8 +186,7 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
         jstring model_jstring = (jstring)env->GetStaticObjectField(build_class, model_field_id);
         const char* source_model_chars = env->GetStringUTFChars(model_jstring, NULL);
         if (source_model_chars != NULL) {
-            strncpy(model_chars, source_model_chars, strlen(source_model_chars));
-            model_chars[strlen(source_model_chars) + 1] = '\0';
+            strncpy(model_chars, source_model_chars, 1024);
         }
         __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "%s", model_chars);
 
@@ -191,8 +194,7 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
         jstring manufacturer_jstring = (jstring)env->GetStaticObjectField(build_class, manufacturer_field_id);
         const char* source_manufacturer_chars = env->GetStringUTFChars(manufacturer_jstring, NULL);
         if (source_manufacturer_chars != NULL) {
-            strncpy(manufacturer_chars, source_manufacturer_chars, strlen(source_manufacturer_chars));
-            manufacturer_chars[strlen(source_manufacturer_chars) + 1] = '\0';
+            strncpy(manufacturer_chars, source_manufacturer_chars, 1024);
         }
         __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "%s", manufacturer_chars);
 
@@ -200,15 +202,14 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
         jstring product_jstring = (jstring)env->GetStaticObjectField(build_class, product_field_id);
         const char* source_product_chars = env->GetStringUTFChars(product_jstring, NULL);
         if (source_product_chars != NULL) {
-            strncpy(product_chars, source_product_chars, strlen(source_product_chars));
-            product_chars[strlen(source_product_chars) + 1] = '\0';
+            strncpy(product_chars, source_product_chars, 1024);
         }
         __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "%s", product_chars);
 
         if (
-                (strncmp(brand_chars, "generic", sizeof("generic") - 1) == 0 && strncmp(device_chars, "generic", sizeof("generic") - 1) == 0)
-                || strncmp(fingerprint_chars, "generic", sizeof("generic") - 1) == 0
-                || strncmp(fingerprint_chars, "unknown", sizeof("unknown") - 1) == 0
+                (strncmp(brand_chars, "generic", strlen("generic")) == 0 && strncmp(device_chars, "generic", strlen("generic")) == 0)
+                || strncmp(fingerprint_chars, "generic", strlen("generic")) == 0
+                || strncmp(fingerprint_chars, "unknown", strlen("unknown")) == 0
                 || strstr(hardware_chars, "goldfish") != NULL
                 || strstr(hardware_chars, "ranchu") != NULL
                 || strstr(model_chars, "google_sdk") != NULL
@@ -247,6 +248,8 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
     if (g_files_dir == NULL) {
 
         g_files_dir = new char[2048];
+        memset(g_files_dir, '\0', 2048);
+
         jclass context_class = env->GetObjectClass(context);
         jmethodID get_files_dir_method_id = env->GetMethodID(context_class, "getFilesDir", "()Ljava/io/File;");
         jobject files_dir_jobject = env->CallObjectMethod(context, get_files_dir_method_id);
@@ -277,8 +280,7 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
 
         const char* files_dir_chars = env->GetStringUTFChars(files_dir_jstring, NULL);
 
-        strncpy(g_files_dir, files_dir_chars, strlen(files_dir_chars));
-        g_files_dir[strlen(files_dir_chars) + 1] = '\0';
+        strncpy(g_files_dir, files_dir_chars, 2048);
 
         env->ReleaseStringUTFChars(files_dir_jstring, files_dir_chars);
 
