@@ -21,16 +21,21 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         final ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        TextView textView = binding.sampleText;
+
+        MediaKitAndroidHelper.setApplicationContextJava(getApplicationContext());
 
         final String obj = "Hello World!";
 
         final long ref = MediaKitAndroidHelper.newGlobalObjectRef(obj);
         MediaKitAndroidHelper.deleteGlobalObjectRef(ref);
 
-        textView.setText(String.format(Locale.ENGLISH, "%d", ref));
-
-        MediaKitAndroidHelper.setApplicationContext(getApplicationContext());
+        binding.textView0.setText(String.format(Locale.ENGLISH, "%d", ref));
         MediaKitAndroidHelper.copyAssetToFilesDir("video/bee.mp4");
+
+        binding.button.setOnClickListener((view) -> {
+            final String uri = binding.textField.getText().toString();
+            final int fileDescriptor = MediaKitAndroidHelper.openFileDescriptorNative(uri);
+            binding.textView1.setText(String.format("%d", fileDescriptor));
+        });
     }
 }
