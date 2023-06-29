@@ -7,17 +7,40 @@
 package com.alexmercerind.mediakitandroidhelper;
 
 import android.content.Context;
+import android.net.Uri;
+
+import java.io.FileNotFoundException;
 
 public class MediaKitAndroidHelper {
     static {
         System.loadLibrary("mediakitandroidhelper");
     }
 
+    // Store android.content.Context for access in openFileDescriptor.
+    private static Context applicationContext = null;
+
     public static native long newGlobalObjectRef(Object obj);
 
     public static native void deleteGlobalObjectRef(long ref);
 
-    public static native void setApplicationContext(Context context);
-
     public static native String copyAssetToFilesDir(String assetName);
+
+    private static native void setApplicationContextNative(Context context);
+
+    public static void setApplicationContextJava(Context context) {
+        applicationContext = context;
+        setApplicationContextNative(context);
+    }
+
+    public static native int openFileDescriptorNative(String uri);
+
+    public static int openFileDescriptorJava(String uri) {
+        try {
+            final Uri object = Uri.parse(uri);
+            return applicationContext.getContentResolver().openFileDescriptor(object, "r").detachFd();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
 }

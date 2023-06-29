@@ -10,7 +10,11 @@
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 
+#include <unistd.h>
+
+#include <future>
 #include <string>
+#include <thread>
 
 // ------------------------------------------------------------
 // Globals. For sharing necessary values between Java & Dart.
@@ -20,6 +24,7 @@ JavaVM* g_jvm = NULL;
 int8_t g_is_emulator = -1;
 char* g_files_dir = NULL;
 AAssetManager* g_asset_manager = NULL;
+jclass g_media_kit_android_helper_class = NULL;
 
 // ------------------------------------------------------------
 // Native. For access through Dart FFI.
@@ -102,6 +107,62 @@ extern "C" __attribute__ ((visibility ("default"))) int8_t MediaKitAndroidHelper
     return g_is_emulator;
 }
 
+extern "C" __attribute__ ((visibility ("default"))) int32_t MediaKitAndroidHelperOpenFileDescriptor(const char* uri) {
+    auto file_descriptor_promise = std::promise<int32_t>{};
+    std::thread([&] () {
+        if (g_jvm != NULL && g_media_kit_android_helper_class != NULL) {
+            __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "MediaKitAndroidHelperOpenFileDescriptor: %s", uri);
+            JNIEnv* env = NULL;
+            bool attached = false;
+            jint get_env_result = g_jvm->GetEnv((void**)env, JNI_VERSION_1_6);
+
+            __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "get_env_result = %d", get_env_result);
+
+            if (get_env_result != JNI_OK) {
+                if (g_jvm->AttachCurrentThread(&env, NULL) == JNI_OK) {
+                    attached = true;
+                    __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "JavaVM::AttachCurrentThread Success");
+                } else {
+                    __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "JavaVM::AttachCurrentThread Failure");
+                }
+            }
+
+            if (env == NULL) {
+                __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "env = NULL");
+            }
+            if (env != NULL) {
+                jstring uri_jstring = env->NewStringUTF(uri);
+
+                jmethodID open_file_descriptor_method_id = env->GetStaticMethodID(g_media_kit_android_helper_class, "openFileDescriptorJava", "(Ljava/lang/String;)I");
+                jint file_descriptor = env->CallStaticIntMethod(g_media_kit_android_helper_class, open_file_descriptor_method_id, uri_jstring);
+
+                __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "file_descriptor = %d", file_descriptor);
+
+                int32_t result = dup(file_descriptor);
+
+                __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "result = %d", result);
+
+                close(file_descriptor);
+
+                env->DeleteLocalRef(uri_jstring);
+
+                if (attached) {
+                    g_jvm->DetachCurrentThread();
+                }
+
+                file_descriptor_promise.set_value(result);
+                return;
+            }
+        }
+        file_descriptor_promise.set_value(-1);
+    }).detach();
+    return file_descriptor_promise.get_future().get();
+}
+
+extern "C" __attribute__ ((visibility ("default"))) void MediaKitAndroidHelperCloseFileDescriptor(int32_t file_descriptor) {
+    close(file_descriptor);
+}
+
 // ------------------------------------------------------------
 // JNI. For access through platform channels.
 // ------------------------------------------------------------
@@ -117,7 +178,7 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_deleteGlobalO
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicationContext(JNIEnv *env, jclass, jobject context) {
+Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicationContextNative(JNIEnv *env, jclass, jobject context) {
     // g_jvm
 
     if (g_jvm == NULL) {
@@ -299,6 +360,12 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_setApplicatio
 
         env->DeleteLocalRef(asset_manager_jobject);
     }
+
+    // g_media_kit_android_helper_class
+
+    if (g_media_kit_android_helper_class == NULL) {
+        g_media_kit_android_helper_class = (jclass)env->NewGlobalRef(env->FindClass("com/alexmercerind/mediakitandroidhelper/MediaKitAndroidHelper"));
+    }
 }
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -308,4 +375,18 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_copyAssetToFi
     MediaKitAndroidHelperCopyAssetToFilesDir(asset_name_chars, result);
     env->ReleaseStringUTFChars(asset_name, asset_name_chars);
     return env->NewStringUTF(result);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_openFileDescriptorNative(
+        JNIEnv *env, jclass clazz, jstring uri) {
+    if (g_media_kit_android_helper_class != NULL) {
+        jmethodID open_file_descriptor_method_id = env->GetStaticMethodID(g_media_kit_android_helper_class, "openFileDescriptorJava", "(Ljava/lang/String;)I");
+        jint file_descriptor = env->CallStaticIntMethod(g_media_kit_android_helper_class, open_file_descriptor_method_id, uri);
+        int32_t result = dup(file_descriptor);
+        close(file_descriptor);
+        return result;
+    }
+    return -1;
 }
