@@ -21,8 +21,8 @@
 // ------------------------------------------------------------
 
 JavaVM* g_jvm = NULL;
-int8_t g_is_emulator = -1;
 char* g_files_dir = NULL;
+int8_t g_is_emulator = -1;
 AAssetManager* g_asset_manager = NULL;
 jclass g_media_kit_android_helper_class = NULL;
 
@@ -99,12 +99,16 @@ extern "C" __attribute__ ((visibility ("default"))) void* MediaKitAndroidHelperG
     return g_jvm;
 }
 
-extern "C" __attribute__ ((visibility ("default"))) int32_t MediaKitAndroidHelperGetAPILevel() {
-    return android_get_device_api_level();
+extern "C" __attribute__ ((visibility ("default"))) char* MediaKitAndroidHelperGetFilesDir() {
+    return g_files_dir;
 }
 
 extern "C" __attribute__ ((visibility ("default"))) int8_t MediaKitAndroidHelperIsEmulator() {
     return g_is_emulator;
+}
+
+extern "C" __attribute__ ((visibility ("default"))) int32_t MediaKitAndroidHelperGetAPILevel() {
+    return android_get_device_api_level();
 }
 
 extern "C" __attribute__ ((visibility ("default"))) int32_t MediaKitAndroidHelperOpenFileDescriptor(const char* uri) {
