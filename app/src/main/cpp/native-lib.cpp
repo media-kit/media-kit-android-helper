@@ -142,19 +142,13 @@ extern "C" __attribute__ ((visibility ("default"))) int32_t MediaKitAndroidHelpe
 
                 __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "file_descriptor = %d", file_descriptor);
 
-                int32_t result = dup(file_descriptor);
-
-                __android_log_print(ANDROID_LOG_DEBUG, "media_kit", "result = %d", result);
-
-                close(file_descriptor);
-
                 env->DeleteLocalRef(uri_jstring);
 
                 if (attached) {
                     g_jvm->DetachCurrentThread();
                 }
 
-                file_descriptor_promise.set_value(result);
+                file_descriptor_promise.set_value(file_descriptor);
                 return;
             }
         }
@@ -381,16 +375,13 @@ Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_copyAssetToFi
     return env->NewStringUTF(result);
 }
 
-extern "C"
-JNIEXPORT jint JNICALL
+extern "C" JNIEXPORT jint JNICALL
 Java_com_alexmercerind_mediakitandroidhelper_MediaKitAndroidHelper_openFileDescriptorNative(
         JNIEnv *env, jclass clazz, jstring uri) {
     if (g_media_kit_android_helper_class != NULL) {
         jmethodID open_file_descriptor_method_id = env->GetStaticMethodID(g_media_kit_android_helper_class, "openFileDescriptorJava", "(Ljava/lang/String;)I");
         jint file_descriptor = env->CallStaticIntMethod(g_media_kit_android_helper_class, open_file_descriptor_method_id, uri);
-        int32_t result = dup(file_descriptor);
-        close(file_descriptor);
-        return result;
+        return file_descriptor;
     }
     return -1;
 }
