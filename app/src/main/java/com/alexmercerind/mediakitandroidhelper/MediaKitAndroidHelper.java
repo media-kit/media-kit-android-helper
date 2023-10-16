@@ -6,10 +6,8 @@
 
 package com.alexmercerind.mediakitandroidhelper;
 
-import android.content.Context;
 import android.net.Uri;
-
-import java.io.FileNotFoundException;
+import android.content.Context;
 
 public class MediaKitAndroidHelper {
     static {

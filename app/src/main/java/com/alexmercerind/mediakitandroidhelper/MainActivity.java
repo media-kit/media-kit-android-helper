@@ -9,8 +9,6 @@ package com.alexmercerind.mediakitandroidhelper;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
-import android.widget.TextView;
-
 import com.alexmercerind.mediakitandroidhelper.databinding.ActivityMainBinding;
 
 import java.util.Locale;
