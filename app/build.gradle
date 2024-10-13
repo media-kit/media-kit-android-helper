@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace 'com.alexmercerind.mediakitandroidhelper'
-    compileSdk 33
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.alexmercerind.mediakitandroidhelper"
         minSdk 21
-        targetSdk 33
+        targetSdk 35
         versionCode 1
         versionName "1.0"
 
