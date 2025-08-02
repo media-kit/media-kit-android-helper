@@ -8,13 +8,10 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project("mediakitandroidhelper")
 
-add_library(mediakitandroidhelper SHARED native-lib.cpp)
+add_library(${CMAKE_PROJECT_NAME} SHARED native-lib.cpp)
 
 find_library(log-lib log)
 find_library(android-lib android)
 
-target_link_libraries(
-        mediakitandroidhelper
-        ${log-lib}
-        ${android-lib}
-)
+target_link_libraries(${CMAKE_PROJECT_NAME} ${log-lib} ${android-lib})
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE "-Wl,-z,max-page-size=16384")

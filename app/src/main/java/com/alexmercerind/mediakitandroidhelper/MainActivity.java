@@ -6,14 +6,15 @@
 
 package com.alexmercerind.mediakitandroidhelper;
 
+import android.os.Bundle;
+
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.os.Bundle;
 import com.alexmercerind.mediakitandroidhelper.databinding.ActivityMainBinding;
 
-import java.util.Locale;
-
 public class MainActivity extends AppCompatActivity {
+    private static final Object OBJECT = new Object();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -22,18 +23,12 @@ public class MainActivity extends AppCompatActivity {
 
         MediaKitAndroidHelper.setApplicationContextJava(getApplicationContext());
 
-        final String obj = "Hello World!";
+        final long ref = MediaKitAndroidHelper.newGlobalObjectRef(OBJECT);
+        final String path = MediaKitAndroidHelper.copyAssetToFilesDir("video/bee.mp4");
+        final int fd = MediaKitAndroidHelper.openFileDescriptorJava("file://" + path);
 
-        final long ref = MediaKitAndroidHelper.newGlobalObjectRef(obj);
-        MediaKitAndroidHelper.deleteGlobalObjectRef(ref);
-
-        binding.textView0.setText(String.format(Locale.ENGLISH, "%d", ref));
-        MediaKitAndroidHelper.copyAssetToFilesDir("video/bee.mp4");
-
-        binding.button.setOnClickListener((view) -> {
-            final String uri = binding.textField.getText().toString();
-            final int fileDescriptor = MediaKitAndroidHelper.openFileDescriptorNative(uri);
-            binding.textView1.setText(String.format("%d", fileDescriptor));
-        });
+        binding.textView0.setText(String.valueOf(ref));
+        binding.textView1.setText(String.valueOf(path));
+        binding.textView2.setText(String.valueOf(fd));
     }
 }
